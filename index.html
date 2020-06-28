@@ -1,0 +1,284 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+
+	<title>Living Poster Speech</title>
+	<meta name="description" content="Living Poster">
+	<meta name="author" content="Jochem van Hout">
+
+	<script src="snoowrap-v1.min.js"></script>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+</head>
+
+<style> 
+
+@font-face {
+    font-family: BebasNeue;
+    font-weight: bold;
+    src: url("BebasNeue Bold.otf") format("opentype");
+}
+
+body{
+	background-size: contain;
+	margin: 0;
+}
+
+p{
+	font-family: 'BebasNeue', sans-serif; 
+	color: white;
+	text-align: center;
+	text-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
+	margin-top: -10px;
+}
+
+#coverscreen
+{
+	position:fixed;
+    width:100%;
+    height:100%;
+    top:0px;
+    left:0px;
+    z-index:1000;
+
+}
+
+#inputform
+{
+	font-family: 'BebasNeue', sans-serif; 
+	font-size: 96px;
+	color: white;
+	text-align: center;
+
+	border: none;
+	background-color: transparent;
+
+	width:100%;
+	height:100%;
+
+	outline-width: 0;
+}
+
+#wrapper{
+	z-index: 1;
+
+	width:40%;
+	height: 100vh;
+	margin: 0 auto;
+	background:  no-repeat center center fixed; 
+	background-size: cover;
+	display: flex;
+	position: relative;
+}
+
+#headline
+{ 
+	font-family: 'BebasNeue', sans-serif; 
+	font-size: 4vw;
+	color: white;
+	text-shadow: 3px 3px 0px rgba(0, 0, 0, 1);
+	max-width: 100%;
+	max-height: 10%;
+	margin-left: 20px;
+	margin-right: 20px;
+	margin-top: 20px;
+}
+
+#subtext 
+{ 
+	font-family: 'BebasNeue', sans-serif; 
+	font-size: 2vw;
+	color: white;
+	text-shadow: 3px 3px 0px rgba(0, 0, 0, 1);
+	max-width: 100%;
+	max-height: 10%;
+	margin-left: 20px;
+	margin-right: 20px;
+	margin-top: -10px;
+}
+
+#bottom
+{
+	width:100%;
+  	margin: 0 auto;
+	position: absolute;
+	bottom: 0;
+	text-align: center;
+}
+
+#progress
+{
+	width:0%;
+	height:5px;
+	position: absolute;
+	bottom: 0;
+
+	background-color: white;
+}
+
+
+</style>
+
+<body style="background-color:black;">
+
+<div id="coverscreen">
+
+	<input id="inputform" type="text" spellcheck="false" name="theme" >
+
+</div>
+
+<div id="wrapper">
+	<div id="headlines">
+		<div id="headline"></div>
+		<div id="subtext"></div>
+	</div>
+
+	<div id="bottom">
+		<p><font size="6">Typ iets om de content van de poster aan te passen!</font></p>
+		<p><font size="4">Deze poster is gemaakt door jou en mij. Bron van tekst en foto's is Reddit. Jochem van Hout</font></p>
+	</div>
+
+	<div id="progress"></div>
+</div>
+
+</body>
+
+<script>
+
+var sub = 'itookapicture'
+
+var counter = 0
+var data = []
+var posttitles = []
+var posturl = []
+var postAmount = 0;
+
+var progress = 0;
+
+// Login to reddit bot account
+const r = new snoowrap({
+	userAgent: 'your username',
+	clientId: 'your id',
+	clientSecret: 'your secret key',
+	username: 'your username',
+	password: 'your password'
+});
+
+function getSub(newsub){
+	sub = newsub;
+	console.log(sub);
+	data = []
+	r.getSubreddit(sub).getNew().then(dataExtraction);
+}
+
+// Check to see if the url is a direct image
+function checkURL(url) {
+    return(url.match(/\.(jpeg|jpg|png)$/) != null);
+}
+
+function dataExtraction(data){
+
+	posttitles = [];
+	posturl = [];
+
+
+
+	for (i=0;i<data.length; i++){
+		posttitles.push(data[i].title);
+		posturl.push(data[i].url);	
+	}
+
+	console.log(posturl);
+
+	postAmount = data.length;
+
+	showContent()
+}
+
+function subSearch(data){
+	var firstsub = data[0];
+
+
+	getSub(firstsub);
+
+}
+
+function showContent(){
+	$("#headline").empty()
+	$("#subtext").empty()
+
+	$("#headline").append(sub);
+
+	counter++;
+	
+		if (counter == postAmount){
+			counter = 0;	
+		}
+
+		if (checkURL(posturl[counter]) == true){
+
+			$("#subtext").append(posttitles[counter]);
+			$('#wrapper').css('background-image', 'url("' + posturl[counter] + '")');
+
+		} else {
+
+		showContent()
+
+		}
+}
+
+r.getSubreddit(sub).getNew().then(dataExtraction);
+
+// On spacebar press
+document.addEventListener("keypress", KeyPress);
+
+function KeyPress(e){ 
+
+	document.getElementById('inputform').focus();
+
+	if(e.keyCode == "13"){
+		if (document.getElementById('inputform').value != "")
+		{
+
+		document.getElementById('inputform').blur();
+
+		var newsub = document.getElementById('inputform').value
+
+		document.getElementById('inputform').value = ""
+
+		r.searchSubredditNames({query: newsub, includeNsfw : false}).then(subSearch);
+
+		}
+
+	}
+}
+
+// Change content
+setInterval(function(){ 
+
+	showContent()
+	progress = 0;
+
+}, 10000);
+
+// Progress bar
+setInterval(function(){ 
+	
+	progress = progress + 0.1;
+
+	$('#progress').css('width', progress + '%');
+	
+
+}, 10);
+
+//Get background color onfocus / remove on unfocus
+document.getElementById('inputform').addEventListener("focus", function(){ $("#coverscreen").css("background-color","rgba(242, 113, 156,0.5)"); });
+
+document.getElementById('inputform').addEventListener("blur", function(){ $("#coverscreen").css("background-color","rgba(242, 113, 156,0)"); });
+
+</script>
+
+</html>
